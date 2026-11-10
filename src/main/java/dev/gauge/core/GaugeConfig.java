@@ -10,7 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
-/** Everything Gauge saves in {@code config/gauge.json}. */
+/** Everything Gauge saves in {@code config/gauge/config.json}. */
 public final class GaugeConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 

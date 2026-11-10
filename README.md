@@ -12,7 +12,7 @@ packets of its own.
 
 - **Z** — switch Radius mode (everything nearby) / Focus mode (crosshair only)
 - **N** — hide/show the overlay
-- `/gauge` — settings (also via Mod Menu); `/gauge forget` — clear remembered containers
+- `/gauge` — settings (also via Mod Menu), saved in `config/gauge/config.json`; `/gauge forget` — clear remembered containers
 - Open a container once to read it: Gauge remembers its fill and comparator output (`37% | 6`).
   Servers never send contents of unopened containers, so those show `?`.
 - Comparator outputs are estimated (`~6`): the server does not send them.

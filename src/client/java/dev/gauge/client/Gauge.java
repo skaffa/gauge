@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,7 +22,11 @@ import java.util.Map;
 public final class Gauge {
 	public static final String MOD_ID = "gauge";
 	public static final Logger LOG = LoggerFactory.getLogger("Gauge");
-	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("gauge.json");
+	/** All Gauge files live in their own folder: {@code config/gauge/}. */
+	private static final Path DIR = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID);
+	private static final Path FILE = DIR.resolve("config.json");
+	/** Where 0.1.0 dev builds kept the settings; moved into {@link #DIR} on first load. */
+	private static final Path OLD_FILE = FabricLoader.getInstance().getConfigDir().resolve("gauge.json");
 
 	public static GaugeConfig config = new GaugeConfig();
 	public static final PulseTracker PULSES = new PulseTracker();
@@ -35,6 +40,14 @@ public final class Gauge {
 	}
 
 	static void load() {
+		if (!Files.exists(FILE) && Files.isRegularFile(OLD_FILE)) {
+			try {
+				Files.createDirectories(DIR);
+				Files.move(OLD_FILE, FILE);
+			} catch (IOException e) {
+				LOG.warn("Could not move {} to {}", OLD_FILE, FILE, e);
+			}
+		}
 		config = GaugeConfig.load(FILE).clamp();
 	}
 
