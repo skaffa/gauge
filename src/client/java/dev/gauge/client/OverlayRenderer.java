@@ -10,6 +10,7 @@ import net.minecraft.gizmos.GizmoStyle;
 import net.minecraft.gizmos.Gizmos;
 import net.minecraft.gizmos.TextGizmo;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -187,6 +188,10 @@ final class OverlayRenderer {
 			case SOUND -> cfg.showSound;
 		};
 		double labelY = s.getShape(level, pos).isEmpty() ? 0.3 : Math.min(1.0, s.getShape(level, pos).max(Direction.Axis.Y)) + 0.25;
+		if (s.getBlock() instanceof LecternBlock && s.getValue(LecternBlock.HAS_BOOK)) {
+			// the open book is drawn above the lectern's shape; keep the label clear of its pages
+			labelY = 1.45;
+		}
 		Vec3 center = Vec3.atCenterOf(pos);
 		Vec3 top = new Vec3(center.x, pos.getY() + labelY, center.z);
 		if (labelY > 1.0 && !level.getBlockState(pos.above()).getCollisionShape(level, pos.above()).isEmpty()) {

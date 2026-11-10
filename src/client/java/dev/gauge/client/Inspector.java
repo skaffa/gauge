@@ -260,7 +260,7 @@ final class Inspector {
 		lines.add("Page " + (pp[0] + 1) + "/" + pp[1] + "   Comparator: " + signal);
 		lines.add(pp[2] == 1 ? "Live (singleplayer)" : "Last seen when you read it");
 		lines.add("Pulses 15 for 2 game ticks when a page turns");
-		return new Info(Category.CONTAINER, name, "p" + (pp[0] + 1) + "/" + pp[1] + " | " + signal, YELLOW, null, pulse, lines);
+		return new Info(Category.CONTAINER, name, "p" + (pp[0] + 1) + "/" + pp[1] + " | " + signal, ORANGE, null, pulse, lines);
 	}
 
 	/** {page, pages, live 1/0} from the singleplayer server or the last time the player read it; else null. */
