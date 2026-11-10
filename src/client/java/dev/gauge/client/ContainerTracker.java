@@ -12,6 +12,8 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.LecternMenu;
+import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -53,7 +55,11 @@ final class ContainerTracker {
 		return InteractionResult.PASS;
 	}
 
+	/** Lectern the open lectern menu belongs to. */
+	private static BlockPos lecternPos;
+
 	static void tick(Minecraft mc, String dimension) {
+		trackLectern(mc, dimension);
 		Screen screen = mc.gui.screen();
 		if (!(screen instanceof AbstractContainerScreen<?> acs) || mc.level == null) {
 			bound = null;
@@ -74,6 +80,25 @@ final class ContainerTracker {
 		var map = Gauge.snapshots(dimension);
 		for (BlockPos p : bound) {
 			map.put(p.asLong(), snap);
+		}
+	}
+
+	private static void trackLectern(Minecraft mc, String dimension) {
+		if (mc.player == null || mc.level == null || !(mc.player.containerMenu instanceof LecternMenu menu)) {
+			lecternPos = null;
+			return;
+		}
+		if (lecternPos == null) {
+			if (clicked == null || !dimension.equals(clickedDim) || mc.level.getGameTime() - clickedTick > OPEN_WINDOW
+					|| !(mc.level.getBlockState(clicked).getBlock() instanceof LecternBlock)) {
+				return;
+			}
+			lecternPos = clicked;
+			clicked = null;
+		}
+		int pages = LecternPages.count(menu.getBook());
+		if (pages > 0) {
+			Gauge.rememberLectern(dimension, lecternPos.asLong(), Math.clamp(menu.getPage(), 0, pages - 1), pages);
 		}
 	}
 

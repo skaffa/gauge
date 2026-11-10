@@ -28,6 +28,9 @@ public final class Gauge {
 	/** Container snapshots per dimension, keyed by {@code BlockPos.asLong()}. Kept for the session only. */
 	private static final Map<String, Map<Long, ContainerSnapshot>> SNAPSHOTS = new HashMap<>();
 
+	/** Lectern {page, pages} per dimension, from the last time the player read it. */
+	private static final Map<String, Map<Long, int[]>> LECTERNS = new HashMap<>();
+
 	private Gauge() {
 	}
 
@@ -52,14 +55,25 @@ public final class Gauge {
 		return m == null ? null : m.get(pos);
 	}
 
+	static void rememberLectern(String dimension, long pos, int page, int pages) {
+		LECTERNS.computeIfAbsent(dimension, k -> new HashMap<>()).put(pos, new int[] {page, pages});
+	}
+
+	static int[] lectern(String dimension, long pos) {
+		Map<Long, int[]> m = LECTERNS.get(dimension);
+		return m == null ? null : m.get(pos);
+	}
+
 	static int forgetSnapshots() {
-		int n = SNAPSHOTS.values().stream().mapToInt(Map::size).sum();
+		int n = SNAPSHOTS.values().stream().mapToInt(Map::size).sum() + LECTERNS.values().stream().mapToInt(Map::size).sum();
 		SNAPSHOTS.clear();
+		LECTERNS.clear();
 		return n;
 	}
 
 	static void reset() {
 		SNAPSHOTS.clear();
+		LECTERNS.clear();
 		PULSES.clear();
 	}
 

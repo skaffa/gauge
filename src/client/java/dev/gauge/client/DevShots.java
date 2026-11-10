@@ -38,11 +38,13 @@ final class DevShots {
 		int extra = ticks < 500 ? -1 : (ticks - 500) / 30 + 1;
 		if (ticks >= 300) {
 			// the dev window may catch real mouse movement; keep looking at the rig
-			Vec3 look = extra >= 1 && extra < targets.size() ? Vec3.atCenterOf(targets.get(extra))
+			Vec3 look = extra >= 1 && extra < targets.size() ? topOf(mc, targets.get(extra))
 					: ticks >= 460 ? Vec3.atCenterOf(chest) : Vec3.atCenterOf(chest).add(0, -0.5, 3.0);
 			lookAt(mc, look);
 		}
 		switch (ticks) {
+			// singleplayer test worlds: stand where the multiplayer test puts the player
+			case 250 -> teleport(mc, 5.5, -60, 1.5);
 			case 300 -> {
 				Gauge.config.mode = GaugeConfig.Mode.RADIUS;
 				Gauge.config.enabled = true;
@@ -56,6 +58,11 @@ final class DevShots {
 			case 480 -> shot(mc, "4-focus");
 			default -> {
 			}
+		}
+		if (extra >= 1 && extra < targets.size() && (ticks - 500) % 30 == 1) {
+			// singleplayer: step up to the target so it is within reach of the crosshair
+			BlockPos t = targets.get(extra);
+			teleport(mc, t.getX() + 0.5, t.getY(), t.getZ() + 2.5);
 		}
 		if (extra >= 1 && extra < targets.size() && (ticks - 500) % 30 == 25) {
 			shot(mc, "5-target" + extra);
@@ -82,6 +89,27 @@ final class DevShots {
 			}
 		}
 		return out;
+	}
+
+	/** Just under the top of the block's shape, so the crosshair lands on it and not on its neighbours. */
+	private static Vec3 topOf(Minecraft mc, BlockPos pos) {
+		var shape = mc.level.getBlockState(pos).getShape(mc.level, pos);
+		double top = shape.isEmpty() ? 0.5 : shape.max(net.minecraft.core.Direction.Axis.Y) - 0.03;
+		return new Vec3(pos.getX() + 0.5, pos.getY() + top, pos.getZ() + 0.5);
+	}
+
+	/** Singleplayer only (multiplayer tests position the player over RCON). */
+	private static void teleport(Minecraft mc, double x, double y, double z) {
+		var server = mc.getSingleplayerServer();
+		var id = mc.player.getUUID();
+		if (server != null) {
+			server.execute(() -> {
+				var sp = server.getPlayerList().getPlayer(id);
+				if (sp != null) {
+					sp.teleportTo(x, y, z);
+				}
+			});
+		}
 	}
 
 	private static void lookAt(Minecraft mc, Vec3 target) {

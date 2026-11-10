@@ -20,6 +20,8 @@ server.
 | Pulse highlight, clock period | every client block change via a `ClientLevel.sendBlockUpdated` mixin |
 | Note block note name (e.g. `C4`), step 0-24, pitch, Hz, instrument | `NOTE`, `INSTRUMENT`, `POWERED`; octave ranges per instrument from the wiki |
 | Jukebox song, time played / length, comparator output | start/stop level events via a `LevelEventHandler` mixin |
+| Lectern page, book length, comparator output | page from the lectern menu when you read it; formula `floor(page/(pages-1)*14)+1` |
+| Exact values in singleplayer | block entities read on the integrated server's thread (container contents, comparator output, jukebox song and position, lectern page) |
 | Target panel beside the crosshair | all of the above, in words |
 
 Modes: **Radius** (everything within 2–32 blocks, nearest first, capped at `maxLabels`) and **Focus**
@@ -55,5 +57,11 @@ logic blocks, powered blocks, containers, pulses, target panel.
    "stopped" events to players nearby. Gauge records those, so a song that began before you came near
    shows `disc ?`. Note: the client's play handler calls its own stop first, so the start is recorded at
    the end of the handler.
-9. **Fabric only** for now; NeoForge would need a second loader module.
-10. Units: repeater delay is shown in redstone ticks and game ticks; pulse timings in game ticks (`gt`).
+9. **Lecterns and other block-entity comparator sources.** Lectern page, chiseled bookshelf slot,
+   command block results and similar live in block entities that are never synced, so the client's own
+   `getAnalogOutputSignal` returns wrong numbers for them. Gauge trusts the client only for blocks
+   without a block entity (plus beehives); otherwise it uses a known reading or shows `?`.
+10. **Singleplayer is exact.** The integrated server runs in the same process, so Gauge reads the real
+   block entities there (as a task on the server thread) and every value above is exact and live.
+11. **Fabric only** for now; NeoForge would need a second loader module.
+12. Units: repeater delay is shown in redstone ticks and game ticks; pulse timings in game ticks (`gt`).

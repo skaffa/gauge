@@ -13,7 +13,9 @@ import net.minecraft.world.level.block.CrafterBlock;
 import net.minecraft.world.level.block.DiodeBlock;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.HopperBlock;
+import net.minecraft.world.level.block.BeehiveBlock;
 import net.minecraft.world.level.block.JukeboxBlock;
+import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.level.block.NoteBlock;
 import net.minecraft.world.level.block.ObserverBlock;
 import net.minecraft.world.level.block.RedstoneLampBlock;
@@ -114,10 +116,16 @@ final class Inspector {
 			boolean subtract = s.getValue(ComparatorBlock.MODE) == ComparatorMode.SUBTRACT;
 			boolean on = s.getValue(DiodeBlock.POWERED);
 			Direction out = s.getValue(DiodeBlock.FACING).getOpposite();
-			int est = estimateComparator(level, pos, s, dimension);
+			ServerPeek.Peek peek = ServerPeek.get(dimension, pos.asLong());
+			boolean exact = peek != null && peek.comparatorOut() >= 0;
+			int est = exact ? peek.comparatorOut() : estimateComparator(level, pos, s, dimension);
+			String value = est < 0 ? (on ? "on" : "off") : exact ? Integer.toString(est) : "~" + est;
 			lines.add("Mode: " + (subtract ? "subtract" : "compare"));
-			lines.add("Output: " + (est >= 0 ? "~" + est + " (estimated)" : on ? "on" : "off") + " -> " + dir(out));
-			String label = (subtract ? "sub " : "cmp ") + (est >= 0 ? "~" + est : on ? "on" : "off");
+			lines.add("Output: " + value + (est >= 0 && !exact ? " (estimated)" : "") + " -> " + dir(out));
+			if (est < 0) {
+				lines.add("Input unknown: open the container behind it once");
+			}
+			String label = (subtract ? "sub " : "cmp ") + value;
 			return new Info(Category.LOGIC, name, label, on ? RED : GRAY, out, on, lines);
 		}
 		if (b instanceof ObserverBlock) {
@@ -146,6 +154,9 @@ final class Inspector {
 		if (b instanceof JukeboxBlock) {
 			return jukebox(level, pos, s, dimension, name, lines);
 		}
+		if (b instanceof LecternBlock) {
+			return lectern(pos, s, dimension, name, lines);
+		}
 
 		BlockEntity be = level.getBlockEntity(pos);
 		if (be instanceof BaseContainerBlockEntity) {
@@ -162,9 +173,9 @@ final class Inspector {
 			return new Info(Category.LOGIC, name, Integer.toString(p), powerColor(p), null, p > 0, lines);
 		}
 		if (s.hasAnalogOutputSignal()) {
-			int a = s.getAnalogOutputSignal(level, pos, Direction.NORTH);
-			lines.add("Comparator reads: " + a);
-			return new Info(Category.CONTAINER, name, "cmp " + a, YELLOW, null, a > 0, lines);
+			int a = analogValue(level, pos, s, dimension);
+			lines.add("Comparator reads: " + (a < 0 ? "unknown (server-side data)" : a));
+			return new Info(Category.CONTAINER, name, "cmp " + (a < 0 ? "?" : a), a < 0 ? GRAY : YELLOW, null, a > 0, lines);
 		}
 		if (b instanceof RedstoneLampBlock) {
 			boolean lit = s.getValue(BlockStateProperties.LIT);
@@ -208,7 +219,14 @@ final class Inspector {
 			lines.add("Empty");
 			return new Info(Category.SOUND, name, "empty", GRAY, null, false, lines);
 		}
-		JukeboxTracker.Playing playing = JukeboxTracker.get(dimension, pos.asLong());
+		ServerPeek.Peek peek = ServerPeek.get(dimension, pos.asLong());
+		JukeboxTracker.Playing playing = peek != null && peek.song() != null
+				? new JukeboxTracker.Playing(peek.song(), level.getGameTime() - peek.songTicks())
+				: JukeboxTracker.get(dimension, pos.asLong());
+		if (playing == null && peek != null) {
+			lines.add("Has a disc; not playing");
+			return new Info(Category.SOUND, name, "disc", GRAY, null, false, lines);
+		}
 		if (playing == null) {
 			lines.add("Has a disc; song unknown");
 			lines.add("(it started before you came near, or has ended)");
@@ -226,9 +244,75 @@ final class Inspector {
 		return new Info(Category.SOUND, name, label, done ? GRAY : 0xFF80FFB0, null, !done, lines);
 	}
 
+	private static Info lectern(BlockPos pos, BlockState s, String dimension, String name, List<String> lines) {
+		if (!s.getValue(LecternBlock.HAS_BOOK)) {
+			lines.add("No book. Comparator: 0");
+			return new Info(Category.CONTAINER, name, "no book", GRAY, null, false, lines);
+		}
+		int[] pp = lecternPage(dimension, pos.asLong());
+		boolean pulse = s.getValue(LecternBlock.POWERED);
+		if (pp == null) {
+			lines.add("Page unknown: open it once to read it");
+			lines.add("Pulses 15 for 2 game ticks when a page turns");
+			return new Info(Category.CONTAINER, name, "book ?", GRAY, null, pulse, lines);
+		}
+		int signal = LecternPages.signal(pp[0], pp[1]);
+		lines.add("Page " + (pp[0] + 1) + "/" + pp[1] + "   Comparator: " + signal);
+		lines.add(pp[2] == 1 ? "Live (singleplayer)" : "Last seen when you read it");
+		lines.add("Pulses 15 for 2 game ticks when a page turns");
+		return new Info(Category.CONTAINER, name, "p" + (pp[0] + 1) + "/" + pp[1] + " | " + signal, YELLOW, null, pulse, lines);
+	}
+
+	/** {page, pages, live 1/0} from the singleplayer server or the last time the player read it; else null. */
+	private static int[] lecternPage(String dimension, long pos) {
+		ServerPeek.Peek peek = ServerPeek.get(dimension, pos);
+		if (peek != null && peek.lecternPage() >= 0) {
+			return new int[] {peek.lecternPage(), peek.lecternPages(), 1};
+		}
+		int[] seen = Gauge.lectern(dimension, pos);
+		return seen == null ? null : new int[] {seen[0], seen[1], 0};
+	}
+
+	/**
+	 * Comparator reading of a block, or -1 when it depends on server-side data the client lacks.
+	 * Blocks without a block entity (composter, cauldron, cake...) are exact on the client.
+	 */
+	static int analogValue(Level level, BlockPos pos, BlockState s, String dimension) {
+		ServerPeek.Peek peek = ServerPeek.get(dimension, pos.asLong());
+		if (peek != null && peek.analog() >= 0) {
+			return peek.analog();
+		}
+		Block b = s.getBlock();
+		BlockEntity be = level.getBlockEntity(pos);
+		if (be instanceof BaseContainerBlockEntity) {
+			ContainerSnapshot snap = Gauge.snapshot(dimension, pos.asLong());
+			return snap == null ? -1 : snap.signal();
+		}
+		if (b instanceof LecternBlock) {
+			if (!s.getValue(LecternBlock.HAS_BOOK)) {
+				return 0;
+			}
+			int[] pp = lecternPage(dimension, pos.asLong());
+			return pp == null ? -1 : LecternPages.signal(pp[0], pp[1]);
+		}
+		if (b instanceof JukeboxBlock) {
+			if (!s.getValue(JukeboxBlock.HAS_RECORD)) {
+				return 0;
+			}
+			JukeboxTracker.Playing playing = JukeboxTracker.get(dimension, pos.asLong());
+			return playing == null ? -1 : playing.song().comparatorOutput();
+		}
+		if (be == null || b instanceof BeehiveBlock) {
+			return s.getAnalogOutputSignal(level, pos, Direction.NORTH);
+		}
+		return -1;
+	}
+
 	private static Info container(Level level, BlockPos pos, BlockState s, String dimension, String name, Direction out,
 			boolean active, String extra, List<String> lines) {
-		ContainerSnapshot snap = Gauge.snapshot(dimension, pos.asLong());
+		ServerPeek.Peek peek = ServerPeek.get(dimension, pos.asLong());
+		boolean live = peek != null && peek.container() != null;
+		ContainerSnapshot snap = live ? peek.container() : Gauge.snapshot(dimension, pos.asLong());
 		String label;
 		int color;
 		if (snap == null) {
@@ -240,7 +324,7 @@ final class Inspector {
 			color = snap.signal() >= 15 ? RED : snap.signal() == 0 ? GRAY : GREEN;
 			lines.add("Items: " + snap.items() + "/" + snap.capacity() + " (" + snap.usedSlots() + "/" + snap.slots() + " slots)");
 			lines.add("Fill: " + snap.percent() + "%   Comparator: " + snap.signal());
-			lines.add("Seen " + snap.age(System.currentTimeMillis()));
+			lines.add(live ? "Live (singleplayer)" : "Seen " + snap.age(System.currentTimeMillis()));
 		}
 		if (s.getBlock() instanceof ChestBlock && s.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
 			lines.add("Double chest");
@@ -302,11 +386,7 @@ final class Inspector {
 	}
 
 	private static int analog(Level level, BlockPos pos, BlockState s, Direction facing, String dimension) {
-		if (level.getBlockEntity(pos) instanceof BaseContainerBlockEntity) {
-			ContainerSnapshot snap = Gauge.snapshot(dimension, pos.asLong());
-			return snap == null ? -1 : snap.signal();
-		}
-		return s.getAnalogOutputSignal(level, pos, facing.getOpposite());
+		return analogValue(level, pos, s, dimension);
 	}
 
 	static String dir(Direction d) {

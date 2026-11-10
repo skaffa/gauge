@@ -18,6 +18,9 @@ packets of its own.
 - Comparator outputs are estimated (`~6`): the server does not send them.
 - Note blocks show their note (`C4`); the panel adds step, pitch, Hz and the next click.
 - Jukeboxes show the song and its progress, if it started while you were nearby.
+- Lecterns show page and comparator output (`p3/5 | 8`) once you have read the book.
+- In singleplayer every value is exact and live (read from the built-in server): containers without
+  opening them, comparator outputs, jukebox songs and lectern pages.
 
 See [SPEC.md](SPEC.md) for details and known limits.
 

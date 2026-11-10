@@ -43,6 +43,7 @@ public final class GaugeClient implements ClientModInitializer {
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
 			Gauge.reset();
 			JukeboxTracker.clear();
+			ServerPeek.clear();
 		});
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Identifier.fromNamespaceAndPath(Gauge.MOD_ID, "target"), GaugeHud::extract);
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> dispatcher.register(literal("gauge")
@@ -89,6 +90,7 @@ public final class GaugeClient implements ClientModInitializer {
 			Gauge.PULSES.prune(now, 400);
 		}
 		OverlayRenderer.tick(mc, dim);
+		ServerPeek.tick(mc);
 	}
 
 	static String dimension(Level level) {

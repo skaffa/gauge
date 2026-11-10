@@ -1,0 +1,9 @@
+# lectern with a 5-page book on page 3, comparators reading the lectern and the jukebox
+setblock 11 -60 3 lectern[has_book=true]{Book:{id:"minecraft:writable_book",count:1,components:{"minecraft:writable_book_content":{pages:["one","two","three","four","five"]}}},Page:2}
+setblock 11 -60 4 comparator[facing=north]
+setblock 11 -60 5 redstone_wire
+setblock 8 -60 4 comparator[facing=north]
+setworldspawn 5 -60 1
+gamerule spawn_radius 0
+gamerule spawnRadius 0
+data get block 11 -60 3 Page
