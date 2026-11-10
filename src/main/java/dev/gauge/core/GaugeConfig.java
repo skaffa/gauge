@@ -41,6 +41,8 @@ public final class GaugeConfig {
 	public boolean showPoweredBlocks = true;
 	public boolean showContainers = true;
 	public boolean showPulses = true;
+	/** Note block tuning and jukebox songs. */
+	public boolean showSound = true;
 	public boolean showHud = true;
 	/** Ticks a block stays highlighted after its last state change. */
 	public int pulseWindow = 40;

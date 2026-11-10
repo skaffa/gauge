@@ -3,7 +3,8 @@
 	"package": "dev.gauge.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"ClientLevelMixin"
+		"ClientLevelMixin",
+		"LevelEventHandlerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

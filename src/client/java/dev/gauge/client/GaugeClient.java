@@ -40,7 +40,10 @@ public final class GaugeClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(GaugeClient::tick);
 		UseBlockCallback.EVENT.register(ContainerTracker::onUse);
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> Gauge.reset());
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
+			Gauge.reset();
+			JukeboxTracker.clear();
+		});
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Identifier.fromNamespaceAndPath(Gauge.MOD_ID, "target"), GaugeHud::extract);
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> dispatcher.register(literal("gauge")
 				.executes(c -> {

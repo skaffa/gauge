@@ -1,6 +1,7 @@
 package dev.gauge.client;
 
 import dev.gauge.core.ContainerSnapshot;
+import dev.gauge.core.NoteMath;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -12,6 +13,8 @@ import net.minecraft.world.level.block.CrafterBlock;
 import net.minecraft.world.level.block.DiodeBlock;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.HopperBlock;
+import net.minecraft.world.level.block.JukeboxBlock;
+import net.minecraft.world.level.block.NoteBlock;
 import net.minecraft.world.level.block.ObserverBlock;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.RedstoneWireBlock;
@@ -22,6 +25,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.block.state.properties.ComparatorMode;
+import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +39,7 @@ import java.util.function.Predicate;
  */
 final class Inspector {
 	enum Category {
-		DUST, LOGIC, CONTAINER
+		DUST, LOGIC, CONTAINER, SOUND
 	}
 
 	/**
@@ -67,7 +71,8 @@ final class Inspector {
 		}
 		Block b = s.getBlock();
 		return s.isSignalSource() || s.hasAnalogOutputSignal() || b instanceof RedstoneWireBlock || b instanceof HopperBlock
-				|| b instanceof DispenserBlock || b instanceof CrafterBlock || b instanceof RedstoneLampBlock;
+				|| b instanceof DispenserBlock || b instanceof CrafterBlock || b instanceof RedstoneLampBlock
+				|| b instanceof NoteBlock || b instanceof JukeboxBlock;
 	}
 
 	/** Colour of a 0..15 signal: grey at 0, dark to bright red as it rises. */
@@ -135,6 +140,13 @@ final class Inspector {
 			return container(level, pos, s, dimension, name, out, triggered, null, lines);
 		}
 
+		if (b instanceof NoteBlock) {
+			return noteBlock(s, name, lines);
+		}
+		if (b instanceof JukeboxBlock) {
+			return jukebox(level, pos, s, dimension, name, lines);
+		}
+
 		BlockEntity be = level.getBlockEntity(pos);
 		if (be instanceof BaseContainerBlockEntity) {
 			return container(level, pos, s, dimension, name, null, false, null, lines);
@@ -165,6 +177,53 @@ final class Inspector {
 			return container(level, pos, s, dimension, name, null, triggered, null, lines);
 		}
 		return null;
+	}
+
+	private static Info noteBlock(BlockState s, String name, List<String> lines) {
+		NoteBlockInstrument inst = s.getValue(NoteBlock.INSTRUMENT);
+		int step = s.getValue(NoteBlock.NOTE);
+		boolean on = s.getValue(NoteBlock.POWERED);
+		String id = inst.getSerializedName();
+		String instName = id.replace('_', ' ');
+		lines.add("Instrument: " + instName + (inst.worksAboveNoteBlock() ? " (head on top)" : " (block below)"));
+		if (!inst.isTunable()) {
+			lines.add("Fixed sound: tuning has no effect");
+			return new Info(Category.SOUND, name, instName, GRAY, null, on, lines);
+		}
+		String note = NoteMath.name(step, id);
+		lines.add("Note: " + note + "  (step " + step + "/24 = clicks from F#)");
+		double hz = NoteMath.frequency(step, id);
+		lines.add(String.format(Locale.ROOT, "Pitch: x%.3f", NoteMath.pitch(step))
+				+ (hz > 0 ? String.format(Locale.ROOT, "  ~%.1f Hz", hz) : ""));
+		lines.add("Next click: " + NoteMath.name((step + 1) % NoteMath.STEPS, id));
+		if (on) {
+			lines.add("Powered");
+		}
+		String label = NoteMath.lowOctave(id) < 0 ? note + " " + step : note;
+		return new Info(Category.SOUND, name, label, NoteMath.color(step), null, on, lines);
+	}
+
+	private static Info jukebox(Level level, BlockPos pos, BlockState s, String dimension, String name, List<String> lines) {
+		if (!s.getValue(JukeboxBlock.HAS_RECORD)) {
+			lines.add("Empty");
+			return new Info(Category.SOUND, name, "empty", GRAY, null, false, lines);
+		}
+		JukeboxTracker.Playing playing = JukeboxTracker.get(dimension, pos.asLong());
+		if (playing == null) {
+			lines.add("Has a disc; song unknown");
+			lines.add("(it started before you came near, or has ended)");
+			return new Info(Category.SOUND, name, "disc ?", GRAY, null, true, lines);
+		}
+		long elapsed = playing.elapsed(level.getGameTime());
+		int length = playing.song().lengthInTicks();
+		boolean done = playing.song().hasFinished(elapsed);
+		int pct = length <= 0 ? 100 : (int) Math.min(100, elapsed * 100 / length);
+		lines.add(playing.song().description().getString());
+		lines.add(done ? "Finished (" + NoteMath.time(length) + ")"
+				: NoteMath.time(elapsed) + " / " + NoteMath.time(length) + "  (" + pct + "%)");
+		lines.add("Comparator: " + playing.song().comparatorOutput());
+		String label = done ? "done" : "\u266A " + NoteMath.time(elapsed) + "/" + NoteMath.time(length);
+		return new Info(Category.SOUND, name, label, done ? GRAY : 0xFF80FFB0, null, !done, lines);
 	}
 
 	private static Info container(Level level, BlockPos pos, BlockState s, String dimension, String name, Direction out,

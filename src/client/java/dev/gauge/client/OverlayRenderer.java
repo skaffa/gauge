@@ -184,6 +184,7 @@ final class OverlayRenderer {
 			case DUST -> cfg.showDust && (info.active() || cfg.showUnpoweredDust || focus);
 			case LOGIC -> cfg.showLogic;
 			case CONTAINER -> cfg.showContainers;
+			case SOUND -> cfg.showSound;
 		};
 		double labelY = s.getShape(level, pos).isEmpty() ? 0.3 : Math.min(1.0, s.getShape(level, pos).max(Direction.Axis.Y)) + 0.25;
 		Vec3 center = Vec3.atCenterOf(pos);

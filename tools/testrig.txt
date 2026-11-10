@@ -1,5 +1,5 @@
 # Test contraption for Gauge, built in front of a player at 5 -60 1 looking south.
-# Use with: ./gradlew runClient -Pdevshots=3,-60,3 (the chest)
+# Use with: ./gradlew runClient "-Pdevshots=3,-60,3;6,-60,3;7,-60,3;8,-60,3;9,-60,3" (chest, then focus targets)
 fill -2 -60 2 14 -55 16 air
 # lever -> dust line -> repeater -> dust
 setblock 0 -60 5 lever[face=floor,powered=true]
@@ -29,6 +29,14 @@ item replace block 3 -60 3 container.9 with stone 64
 setblock 8 -60 8 composter[level=5]
 setblock 10 -60 8 redstone_torch
 setblock 10 -59 8 stone
+# note blocks (harp on grass, bell on gold, bass drum on stone) and a jukebox
+setblock 6 -60 3 note_block[instrument=harp,note=6]
+setblock 7 -61 3 gold_block
+setblock 7 -60 3 note_block[instrument=bell,note=12]
+setblock 9 -61 3 stone
+setblock 9 -60 3 note_block[instrument=basedrum,note=3]
+setblock 8 -60 3 jukebox
+# the disc goes in later (see README) so the song starts while the client watches
 # player
 gamemode creative GaugeTester
 tp GaugeTester 5 -60 1 0 30

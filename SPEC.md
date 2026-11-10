@@ -18,6 +18,8 @@ server.
 | Container fill % and comparator output | remembered from the last time the player opened it |
 | Composter, cauldron, cake, respawn anchor, beehive... comparator output | `getAnalogOutputSignal` (pure block state) |
 | Pulse highlight, clock period | every client block change via a `ClientLevel.sendBlockUpdated` mixin |
+| Note block note name (e.g. `C4`), step 0-24, pitch, Hz, instrument | `NOTE`, `INSTRUMENT`, `POWERED`; octave ranges per instrument from the wiki |
+| Jukebox song, time played / length, comparator output | start/stop level events via a `LevelEventHandler` mixin |
 | Target panel beside the crosshair | all of the above, in words |
 
 Modes: **Radius** (everything within 2–32 blocks, nearest first, capped at `maxLabels`) and **Focus**
@@ -49,5 +51,9 @@ logic blocks, powered blocks, containers, pulses, target panel.
 7. **Performance** comes from skipping whole 16³ chunk sections whose block palette holds nothing
    relevant (`LevelChunkSection.maybeHas`), a behind-the-camera cull, and the label cap — not from a
    per-frame frustum pass.
-8. **Fabric only** for now; NeoForge would need a second loader module.
-9. Units: repeater delay is shown in redstone ticks and game ticks; pulse timings in game ticks (`gt`).
+8. **Jukebox songs.** The server never sends what disc a jukebox holds, only "song X started here" and
+   "stopped" events to players nearby. Gauge records those, so a song that began before you came near
+   shows `disc ?`. Note: the client's play handler calls its own stop first, so the start is recorded at
+   the end of the handler.
+9. **Fabric only** for now; NeoForge would need a second loader module.
+10. Units: repeater delay is shown in redstone ticks and game ticks; pulse timings in game ticks (`gt`).

@@ -79,6 +79,8 @@ public final class GaugeScreen extends Screen {
 				"Solid blocks receiving power: S = strong, W = weak");
 		y = toggle(right, y, "Containers", () -> c.showContainers, v -> c.showContainers = v,
 				"Fill % and comparator output of containers you have opened, plus composters, cauldrons...");
+		y = toggle(right, y, "Note blocks, jukebox", () -> c.showSound, v -> c.showSound = v,
+				"Note block pitch and instrument; the song a jukebox is playing and how far along it is");
 		toggle(right, y, "Pulse highlight", () -> c.showPulses, v -> c.showPulses = v,
 				"Outline blocks that just changed: cyan, magenta when toggling every 1-2 game ticks");
 

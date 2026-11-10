@@ -1,0 +1,2 @@
+setblock 8 -60 3 jukebox
+item replace block 8 -60 3 container.0 with music_disc_cat
