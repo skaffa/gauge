@@ -8,7 +8,13 @@
 		"Skaffa",
 		"Claude (Anthropic)"
 	],
+	"contact": {
+		"homepage": "https://github.com/skaffa/gauge",
+		"sources": "https://github.com/skaffa/gauge",
+		"issues": "https://github.com/skaffa/gauge/issues"
+	},
 	"license": "MIT",
+	"icon": "assets/gauge/icon.png",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
