@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "gauge",
+	"version": "${version}",
+	"name": "Gauge",
+	"description": "Client-side redstone and container diagnostics: power levels, output arrows, pulse timing, container fill and comparator output, drawn in the world. Sends no packets.",
+	"authors": [
+		"Skaffa",
+		"Claude (Anthropic)"
+	],
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.gauge.client.GaugeClient"
+		],
+		"modmenu": [
+			"dev.gauge.client.compat.ModMenuIntegration"
+		]
+	},
+	"mixins": [
+		{
+			"config": "gauge.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
+	}
+}
