@@ -1,0 +1,38 @@
+# mechanisms row (z 8), blocks row (z 11), entities row (z 14) and a tripwire at x 0
+fill 0 -60 7 16 -58 15 air
+# row z 8: door, iron trapdoor, gate, QC-powered piston (BUD), sticky piston extended, powered rail, activator rail, bell
+setblock 0 -60 8 oak_door[half=lower,open=true]
+setblock 0 -59 8 oak_door[half=upper,open=true]
+setblock 2 -60 8 iron_trapdoor[open=true,powered=true]
+setblock 3 -60 8 oak_fence_gate
+setblock 5 -60 8 piston[facing=up]
+setblock 6 -59 8 redstone_block
+setblock 8 -60 8 redstone_block
+setblock 7 -60 8 sticky_piston[facing=up]
+setblock 10 -61 8 redstone_block
+setblock 10 -60 8 powered_rail
+setblock 11 -60 8 activator_rail
+setblock 13 -60 8 bell[attachment=floor]
+setblock 14 -60 8 redstone_block
+# row z 11: unstable TNT, beehive with honey and bees, furnace lit with no fuel, smoker really burning
+setblock 2 -60 11 tnt[unstable=true]
+setblock 4 -60 11 beehive[honey_level=3]{bees:[{entity_data:{id:"minecraft:bee"},ticks_in_hive:0,min_ticks_in_hive:999999},{entity_data:{id:"minecraft:bee"},ticks_in_hive:0,min_ticks_in_hive:999999}]}
+setblock 6 -60 11 furnace[lit=true]
+setblock 8 -60 11 smoker{Items:[{Slot:0b,id:"minecraft:beef",count:8},{Slot:1b,id:"minecraft:coal",count:4}]}
+# tripwire hooks at z 12 and 15 with string between, an armor stand standing on it
+setblock 0 -60 13 tripwire
+setblock 0 -60 14 tripwire
+setblock 0 -60 12 tripwire_hook[facing=south]
+setblock 0 -60 15 tripwire_hook[facing=north]
+summon armor_stand 0.5 -60 14.5 {NoGravity:1b}
+# row z 14: chest minecart, hopper minecart (locked), furnace minecart, lit TNT, chest boat
+setblock 4 -60 14 rail[shape=east_west]
+setblock 5 -60 14 rail[shape=east_west]
+setblock 6 -60 14 rail[shape=east_west]
+setblock 7 -60 14 rail[shape=east_west]
+setblock 8 -60 14 rail[shape=east_west]
+summon chest_minecart 4.5 -60 14.5 {Items:[{Slot:0b,id:"minecraft:stone",count:64},{Slot:1b,id:"minecraft:stone",count:64}]}
+summon hopper_minecart 6.5 -60 14.5 {Enabled:0b,Items:[{Slot:0b,id:"minecraft:dirt",count:32}]}
+summon furnace_minecart 8.5 -60 14.5 {Fuel:2000s}
+summon tnt 10.5 -60 14.5 {fuse:30000s,NoGravity:1b}
+summon oak_chest_boat 12.5 -60 14.5 {Items:[{Slot:0b,id:"minecraft:oak_log",count:16}]}

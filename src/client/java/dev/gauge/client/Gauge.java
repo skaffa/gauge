@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /** Shared client state: settings, pulse history and remembered container contents. */
 public final class Gauge {
@@ -35,6 +36,9 @@ public final class Gauge {
 
 	/** Lectern {page, pages} per dimension, from the last time the player read it. */
 	private static final Map<String, Map<Long, int[]>> LECTERNS = new HashMap<>();
+
+	/** Contents of container entities (minecarts, chest boats) by UUID, from the last time the player opened them. */
+	private static final Map<UUID, ContainerSnapshot> ENTITY_SNAPSHOTS = new HashMap<>();
 
 	private Gauge() {
 	}
@@ -68,6 +72,14 @@ public final class Gauge {
 		return m == null ? null : m.get(pos);
 	}
 
+	static void rememberEntity(UUID id, ContainerSnapshot snap) {
+		ENTITY_SNAPSHOTS.put(id, snap);
+	}
+
+	static ContainerSnapshot entitySnapshot(UUID id) {
+		return ENTITY_SNAPSHOTS.get(id);
+	}
+
 	static void rememberLectern(String dimension, long pos, int page, int pages) {
 		LECTERNS.computeIfAbsent(dimension, k -> new HashMap<>()).put(pos, new int[] {page, pages});
 	}
@@ -78,15 +90,18 @@ public final class Gauge {
 	}
 
 	static int forgetSnapshots() {
-		int n = SNAPSHOTS.values().stream().mapToInt(Map::size).sum() + LECTERNS.values().stream().mapToInt(Map::size).sum();
+		int n = SNAPSHOTS.values().stream().mapToInt(Map::size).sum() + LECTERNS.values().stream().mapToInt(Map::size).sum()
+				+ ENTITY_SNAPSHOTS.size();
 		SNAPSHOTS.clear();
 		LECTERNS.clear();
+		ENTITY_SNAPSHOTS.clear();
 		return n;
 	}
 
 	static void reset() {
 		SNAPSHOTS.clear();
 		LECTERNS.clear();
+		ENTITY_SNAPSHOTS.clear();
 		PULSES.clear();
 	}
 

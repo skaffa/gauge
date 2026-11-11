@@ -69,6 +69,10 @@ public final class GaugeScreen extends Screen {
 		}).bounds(left + colW - step, y, step, H).build());
 		y += ROW;
 		y = toggle(left, y, "Target panel", () -> c.showHud, v -> c.showHud = v, "Details of the targeted block beside the crosshair");
+		y = toggle(left, y, "Mechanisms", () -> c.showMechanisms, v -> c.showMechanisms = v,
+				"Doors, gates, trapdoors, pistons (BUD/QC), rails, bells, tripwires, unstable TNT");
+		y = toggle(left, y, "Carts, boats, TNT", () -> c.showEntities, v -> c.showEntities = v,
+				"Minecart and chest boat contents, hopper cart lock, furnace cart fuel, TNT fuse");
 
 		y = top;
 		y = toggle(right, y, "Redstone dust", () -> c.showDust, v -> c.showDust = v, "Power level 0-15 on dust");

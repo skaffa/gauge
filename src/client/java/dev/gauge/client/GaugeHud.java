@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
@@ -22,19 +23,27 @@ final class GaugeHud {
 		if (!Gauge.config.enabled || !Gauge.config.showHud || mc.level == null || mc.player == null || mc.gui.screen() != null) {
 			return;
 		}
-		BlockPos pos = OverlayRenderer.target(mc);
-		if (pos == null) {
-			return;
-		}
-		BlockState s = mc.level.getBlockState(pos);
 		String dim = GaugeClient.dimension(mc.level);
-		Inspector.Info info = Inspector.interesting(s) ? Inspector.inspect(mc.level, pos, s, dim) : null;
-		PulseTracker.Pulse pulse = Gauge.PULSES.get(pos.asLong(), mc.level.getGameTime(), Gauge.config.pulseWindow);
+		BlockPos pos = OverlayRenderer.target(mc);
+		Inspector.Info info;
+		PulseTracker.Pulse pulse;
+		String fallbackTitle;
+		if (pos == null) {
+			Entity target = Gauge.config.showEntities ? OverlayRenderer.targetEntity(mc) : null;
+			info = target == null ? null : EntityInspector.inspect(target, dim);
+			pulse = null;
+			fallbackTitle = "";
+		} else {
+			BlockState s = mc.level.getBlockState(pos);
+			info = Inspector.interesting(s) ? Inspector.inspect(mc.level, pos, s, dim) : null;
+			pulse = Gauge.PULSES.get(pos.asLong(), mc.level.getGameTime(), Gauge.config.pulseWindow);
+			fallbackTitle = s.getBlock().getName().getString();
+		}
 		if (info == null && pulse == null) {
 			return;
 		}
 		List<String> lines = new ArrayList<>();
-		String title = info != null ? info.name() : s.getBlock().getName().getString();
+		String title = info != null ? info.name() : fallbackTitle;
 		if (info != null) {
 			lines.addAll(info.lines());
 		}

@@ -43,6 +43,10 @@ public final class GaugeConfig {
 	public boolean showPulses = true;
 	/** Note block tuning and jukebox songs. */
 	public boolean showSound = true;
+	/** Doors, gates, trapdoors, pistons, rails, bells, tripwires, unstable TNT. */
+	public boolean showMechanisms = true;
+	/** Minecarts, chest boats and lit TNT. */
+	public boolean showEntities = true;
 	public boolean showHud = true;
 	/** Ticks a block stays highlighted after its last state change. */
 	public int pulseWindow = 40;

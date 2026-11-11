@@ -9,7 +9,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.vehicle.ContainerEntity;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.LecternMenu;
@@ -46,8 +49,24 @@ final class ContainerTracker {
 	private ContainerTracker() {
 	}
 
+	/** Container entity (minecart, chest boat) the player last right-clicked, or null. */
+	private static Entity clickedEntity;
+	/** Entity the open screen's contents go to, or null. */
+	private static Entity boundEntity;
+
+	static InteractionResult onUseEntity(Player player, Level level, InteractionHand hand, Entity entity, EntityHitResult hit) {
+		if (level.isClientSide() && entity instanceof ContainerEntity) {
+			clickedEntity = entity;
+			clicked = null;
+			clickedDim = GaugeClient.dimension(level);
+			clickedTick = level.getGameTime();
+		}
+		return InteractionResult.PASS;
+	}
+
 	static InteractionResult onUse(Player player, Level level, InteractionHand hand, BlockHitResult hit) {
 		if (level.isClientSide()) {
+			clickedEntity = null;
 			clicked = hit.getBlockPos().immutable();
 			clickedDim = GaugeClient.dimension(level);
 			clickedTick = level.getGameTime();
@@ -63,18 +82,24 @@ final class ContainerTracker {
 		Screen screen = mc.gui.screen();
 		if (!(screen instanceof AbstractContainerScreen<?> acs) || mc.level == null) {
 			bound = null;
+			boundEntity = null;
 			boundScreen = null;
 			return;
 		}
 		if (screen != boundScreen) {
 			boundScreen = screen;
-			bound = bind(mc.level, acs.getMenu(), dimension);
+			boundEntity = bindEntity(mc.level, acs.getMenu(), dimension);
+			bound = boundEntity == null ? bind(mc.level, acs.getMenu(), dimension) : null;
 		}
-		if (bound == null) {
+		if (bound == null && boundEntity == null) {
 			return;
 		}
 		ContainerSnapshot snap = read(acs.getMenu());
 		if (snap == null) {
+			return;
+		}
+		if (boundEntity != null) {
+			Gauge.rememberEntity(boundEntity.getUUID(), snap);
 			return;
 		}
 		var map = Gauge.snapshots(dimension);
@@ -100,6 +125,15 @@ final class ContainerTracker {
 		if (pages > 0) {
 			Gauge.rememberLectern(dimension, lecternPos.asLong(), Math.clamp(menu.getPage(), 0, pages - 1), pages);
 		}
+	}
+
+	private static Entity bindEntity(Level level, AbstractContainerMenu menu, String dimension) {
+		if (clickedEntity == null || !dimension.equals(clickedDim) || level.getGameTime() - clickedTick > OPEN_WINDOW) {
+			return null;
+		}
+		Entity e = clickedEntity;
+		clickedEntity = null;
+		return e instanceof ContainerEntity c && containerSlots(menu).size() == c.getContainerSize() ? e : null;
 	}
 
 	private static List<BlockPos> bind(Level level, AbstractContainerMenu menu, String dimension) {

@@ -3,9 +3,11 @@
 	"package": "dev.gauge.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"AbstractFurnaceBlockEntityAccessor",
 		"ClientLevelMixin",
 		"LecternBlockEntityAccessor",
-		"LevelEventHandlerMixin"
+		"LevelEventHandlerMixin",
+		"MinecartFurnaceAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

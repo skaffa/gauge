@@ -38,7 +38,8 @@ final class DevShots {
 		int extra = ticks < 500 ? -1 : (ticks - 500) / 30 + 1;
 		if (ticks >= 300) {
 			// the dev window may catch real mouse movement; keep looking at the rig
-			Vec3 look = extra >= 1 && extra < targets.size() ? topOf(mc, targets.get(extra))
+			Vec3 look = extra >= 1 && extra < targets.size()
+					? OVERVIEW.contains(extra) ? Vec3.atCenterOf(targets.get(extra)) : topOf(mc, targets.get(extra))
 					: ticks >= 460 ? Vec3.atCenterOf(chest) : Vec3.atCenterOf(chest).add(0, -0.5, 3.0);
 			lookAt(mc, look);
 		}
@@ -62,7 +63,10 @@ final class DevShots {
 		if (extra >= 1 && extra < targets.size() && (ticks - 500) % 30 == 1) {
 			// singleplayer: step up to the target so it is within reach of the crosshair
 			BlockPos t = targets.get(extra);
-			teleport(mc, t.getX() + 0.5, t.getY(), t.getZ() + 2.5);
+			boolean overview = OVERVIEW.contains(extra);
+			// "r" targets: step back and up, radius mode, to see every label around it
+			Gauge.config.mode = overview ? GaugeConfig.Mode.RADIUS : GaugeConfig.Mode.FOCUS;
+			teleport(mc, t.getX() + 0.5, t.getY() + (overview ? 2 : 0), t.getZ() + (overview ? 6.5 : 2.5));
 		}
 		if (extra >= 1 && extra < targets.size() && (ticks - 500) % 30 == 25) {
 			shot(mc, "5-target" + extra);
@@ -75,6 +79,8 @@ final class DevShots {
 	}
 
 	private static final boolean[] PROP_DONE = new boolean[1];
+	/** Indexes of targets written with an "r" prefix: radius-mode overview shots. */
+	private static final java.util.Set<Integer> OVERVIEW = new java.util.HashSet<>();
 
 	/** First entry: the container to open. The rest: blocks to aim at in focus mode, one shot each. */
 	private static List<BlockPos> targets() {
@@ -83,6 +89,11 @@ final class DevShots {
 			return out;
 		}
 		for (String t : PROP.split(";")) {
+			t = t.trim();
+			if (t.startsWith("r")) {
+				OVERVIEW.add(out.size());
+				t = t.substring(1);
+			}
 			String[] p = t.split(",");
 			if (p.length == 3) {
 				out.add(new BlockPos(Integer.parseInt(p[0].trim()), Integer.parseInt(p[1].trim()), Integer.parseInt(p[2].trim())));

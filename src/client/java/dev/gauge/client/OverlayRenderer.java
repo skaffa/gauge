@@ -17,7 +17,9 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -49,6 +51,10 @@ final class OverlayRenderer {
 		}
 		long now = level.getGameTime();
 		if (cfg.mode == GaugeConfig.Mode.FOCUS) {
+			Entity targetEntity = targetEntity(mc);
+			if (targetEntity != null && cfg.showEntities) {
+				drawEntity(targetEntity, dimension, true);
+			}
 			BlockPos target = target(mc);
 			if (target != null) {
 				draw(level, target, level.getBlockState(target), dimension, now, true);
@@ -61,6 +67,14 @@ final class OverlayRenderer {
 
 		Vec3 eye = mc.player.getEyePosition();
 		Vec3 look = mc.player.getViewVector(1.0f);
+		if (cfg.showEntities) {
+			double r2 = (double) cfg.radius * cfg.radius;
+			for (Entity e : level.getEntities((Entity) null, new AABB(eye, eye).inflate(cfg.radius), EntityInspector::interesting)) {
+				if (e.distanceToSqr(eye) <= r2) {
+					drawEntity(e, dimension, false);
+				}
+			}
+		}
 		int n = scan(level, eye, look, cfg.radius);
 		if (n > cfg.maxLabels) {
 			Arrays.sort(found, 0, n);
@@ -93,6 +107,23 @@ final class OverlayRenderer {
 			return bh.getBlockPos();
 		}
 		return null;
+	}
+
+	/** The container cart, chest boat or TNT under the crosshair, or null. */
+	static Entity targetEntity(Minecraft mc) {
+		return mc.hitResult instanceof EntityHitResult eh && EntityInspector.interesting(eh.getEntity()) ? eh.getEntity() : null;
+	}
+
+	private static void drawEntity(Entity e, String dimension, boolean focus) {
+		Inspector.Info info = EntityInspector.inspect(e, dimension);
+		if (info == null) {
+			return;
+		}
+		Vec3 p = e.position().add(0, e.getBbHeight() + 0.35, 0);
+		var props = Gizmos.billboardText(info.label(), p, TextGizmo.Style.forColorAndCentered(info.color()).withScale(TEXT));
+		if (focus) {
+			props.setAlwaysOnTop();
+		}
 	}
 
 	// ---- scanning ----
@@ -186,7 +217,14 @@ final class OverlayRenderer {
 			case LOGIC -> cfg.showLogic;
 			case CONTAINER -> cfg.showContainers;
 			case SOUND -> cfg.showSound;
-		};
+			case MECHANISM -> cfg.showMechanisms;
+			case TRIPWIRE -> cfg.showMechanisms && (info.active() || focus);
+			case ENTITY -> cfg.showEntities;
+		} && !info.label().isEmpty();
+		if (info != null && info.category() == Inspector.Category.TRIPWIRE && info.active() && cfg.showMechanisms) {
+			Gizmos.cuboid(new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 0.15, pos.getZ() + 1),
+					GizmoStyle.stroke(Inspector.RED, 2.0f));
+		}
 		double labelY = s.getShape(level, pos).isEmpty() ? 0.3 : Math.min(1.0, s.getShape(level, pos).max(Direction.Axis.Y)) + 0.25;
 		if (s.getBlock() instanceof LecternBlock && s.getValue(LecternBlock.HAS_BOOK)) {
 			// the open book is drawn above the lectern's shape; keep the label clear of its pages

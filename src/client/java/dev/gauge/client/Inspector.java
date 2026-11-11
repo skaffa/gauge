@@ -18,6 +18,8 @@ import net.minecraft.world.level.block.JukeboxBlock;
 import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.level.block.NoteBlock;
 import net.minecraft.world.level.block.ObserverBlock;
+import net.minecraft.world.level.block.TntBlock;
+import net.minecraft.world.level.block.AbstractFurnaceBlock;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.RepeaterBlock;
@@ -41,7 +43,9 @@ import java.util.function.Predicate;
  */
 final class Inspector {
 	enum Category {
-		DUST, LOGIC, CONTAINER, SOUND
+		DUST, LOGIC, CONTAINER, SOUND, MECHANISM,
+		/** Tripwire string: labelled in radius mode only while tripped. */
+		TRIPWIRE, ENTITY
 	}
 
 	/**
@@ -74,7 +78,7 @@ final class Inspector {
 		Block b = s.getBlock();
 		return s.isSignalSource() || s.hasAnalogOutputSignal() || b instanceof RedstoneWireBlock || b instanceof HopperBlock
 				|| b instanceof DispenserBlock || b instanceof CrafterBlock || b instanceof RedstoneLampBlock
-				|| b instanceof NoteBlock || b instanceof JukeboxBlock;
+				|| b instanceof NoteBlock || b instanceof JukeboxBlock || Mechanisms.interesting(b);
 	}
 
 	/** Colour of a 0..15 signal: grey at 0, dark to bright red as it rises. */
@@ -146,6 +150,11 @@ final class Inspector {
 			boolean triggered = s.getValue(DispenserBlock.TRIGGERED);
 			lines.add("Facing: " + dir(out) + (triggered ? " (powered)" : ""));
 			return container(level, pos, s, dimension, name, out, triggered, null, lines);
+		}
+
+		Info mech = Mechanisms.inspect(level, pos, s, dimension, name, lines);
+		if (mech != null || b instanceof TntBlock) {
+			return mech;
 		}
 
 		if (b instanceof NoteBlock) {
@@ -308,7 +317,7 @@ final class Inspector {
 		return -1;
 	}
 
-	private static Info container(Level level, BlockPos pos, BlockState s, String dimension, String name, Direction out,
+	static Info container(Level level, BlockPos pos, BlockState s, String dimension, String name, Direction out,
 			boolean active, String extra, List<String> lines) {
 		ServerPeek.Peek peek = ServerPeek.get(dimension, pos.asLong());
 		boolean live = peek != null && peek.container() != null;
@@ -328,6 +337,27 @@ final class Inspector {
 		}
 		if (s.getBlock() instanceof ChestBlock && s.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
 			lines.add("Double chest");
+		}
+		if (s.getBlock() instanceof AbstractFurnaceBlock) {
+			boolean lit = s.getValue(AbstractFurnaceBlock.LIT);
+			if (peek != null && peek.furnaceFuel() >= 0) {
+				if (lit && peek.furnaceFuel() <= 0) {
+					lines.add("Lit without fuel burning (set by a command or another mod)");
+					extra = "lit!";
+				} else if (peek.furnaceFuel() > 0) {
+					lines.add("Burning: " + EntityInspector.seconds(peek.furnaceFuel()) + " of fuel left (of "
+							+ EntityInspector.seconds(peek.furnaceFuelTotal()) + ")");
+					extra = "lit";
+				} else {
+					lines.add("Not lit");
+				}
+				if (peek.cookTotal() > 0 && peek.cook() > 0) {
+					lines.add("Cooking: " + peek.cook() * 100 / peek.cookTotal() + "%");
+				}
+			} else {
+				lines.add(lit ? "Lit (fuel left is server-side; exact in singleplayer)" : "Not lit");
+				extra = lit ? "lit" : null;
+			}
 		}
 		if (extra != null) {
 			label = label + " " + extra;

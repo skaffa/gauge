@@ -7,7 +7,16 @@ import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import dev.gauge.client.mixin.AbstractFurnaceBlockEntityAccessor;
+import dev.gauge.client.mixin.MinecartFurnaceAccessor;
+
 import net.minecraft.world.Container;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.vehicle.ContainerEntity;
+import net.minecraft.world.entity.vehicle.minecart.MinecartFurnace;
+import net.minecraft.world.entity.vehicle.minecart.MinecartHopper;
+import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
+import net.minecraft.world.level.block.entity.BeehiveBlockEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.JukeboxSong;
 import net.minecraft.world.item.JukeboxSongPlayer;
@@ -22,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * In singleplayer the server runs in this same process, so Gauge can read the real block entities
@@ -34,11 +44,18 @@ import java.util.Set;
 final class ServerPeek {
 	/** Exact server-side facts about one block. Fields that do not apply are -1 / null. */
 	record Peek(int analog, int comparatorOut, ContainerSnapshot container, JukeboxSong song, long songTicks,
-			int lecternPage, int lecternPages, int lecternSignal) {
+			int lecternPage, int lecternPages, int lecternSignal, int furnaceFuel, int furnaceFuelTotal, int cook, int cookTotal,
+			int bees, boolean sedated) {
+	}
+
+	/** Exact server-side facts about one entity. hopperEnabled is 1/0, -1 when it does not apply; fuel -1 likewise. */
+	record EntityPeek(ContainerSnapshot container, int hopperEnabled, int fuel) {
 	}
 
 	private static final Set<Long> REQUESTED = new HashSet<>();
+	private static final Set<UUID> REQUESTED_ENTITIES = new HashSet<>();
 	private static volatile Map<Long, Peek> latest = Map.of();
+	private static volatile Map<UUID, EntityPeek> latestEntities = Map.of();
 	private static volatile String latestDim = "";
 	private static volatile boolean pending;
 
@@ -58,17 +75,29 @@ final class ServerPeek {
 		return dimension.equals(latestDim) ? latest.get(pos) : null;
 	}
 
+	/** Same as {@link #get(String, long)} for an entity. */
+	static EntityPeek get(String dimension, Entity e) {
+		if (!active()) {
+			return null;
+		}
+		REQUESTED_ENTITIES.add(e.getUUID());
+		return dimension.equals(latestDim) ? latestEntities.get(e.getUUID()) : null;
+	}
+
 	/** Once per client tick: hands the requested positions to the server thread. */
 	static void tick(Minecraft mc) {
 		IntegratedServer server = mc.getSingleplayerServer();
-		if (server == null || mc.level == null || REQUESTED.isEmpty() || pending) {
+		if (server == null || mc.level == null || (REQUESTED.isEmpty() && REQUESTED_ENTITIES.isEmpty()) || pending) {
 			REQUESTED.clear();
+			REQUESTED_ENTITIES.clear();
 			return;
 		}
 		var dimKey = mc.level.dimension();
 		String dim = GaugeClient.dimension(mc.level);
 		long[] positions = REQUESTED.stream().mapToLong(Long::longValue).toArray();
 		REQUESTED.clear();
+		UUID[] entities = REQUESTED_ENTITIES.toArray(new UUID[0]);
+		REQUESTED_ENTITIES.clear();
 		pending = true;
 		server.execute(() -> {
 			try {
@@ -82,7 +111,17 @@ final class ServerPeek {
 						}
 					}
 				}
+				Map<UUID, EntityPeek> outE = new HashMap<>();
+				if (level != null) {
+					for (UUID id : entities) {
+						EntityPeek peek = read(level.getEntity(id));
+						if (peek != null) {
+							outE.put(id, peek);
+						}
+					}
+				}
 				latest = Map.copyOf(out);
+				latestEntities = Map.copyOf(outE);
 				latestDim = dim;
 			} catch (RuntimeException e) {
 				Gauge.LOG.debug("server peek failed", e);
@@ -94,8 +133,10 @@ final class ServerPeek {
 
 	static void clear() {
 		latest = Map.of();
+		latestEntities = Map.of();
 		latestDim = "";
 		REQUESTED.clear();
+		REQUESTED_ENTITIES.clear();
 	}
 
 	private static Peek read(ServerLevel level, BlockPos pos) {
@@ -133,7 +174,34 @@ final class ServerPeek {
 			pages = LecternPages.count(lb.getBook());
 			lecternSignal = lb.getRedstoneSignal();
 		}
-		return new Peek(analog, cmp, snap, song, ticks, page, pages, lecternSignal);
+		int fuel = -1;
+		int fuelTotal = -1;
+		int cook = -1;
+		int cookTotal = -1;
+		if (be instanceof AbstractFurnaceBlockEntity f) {
+			AbstractFurnaceBlockEntityAccessor a = (AbstractFurnaceBlockEntityAccessor) f;
+			fuel = a.gauge$litTime();
+			fuelTotal = a.gauge$litTotal();
+			cook = a.gauge$cookTime();
+			cookTotal = a.gauge$cookTotal();
+		}
+		int bees = -1;
+		boolean sedated = false;
+		if (be instanceof BeehiveBlockEntity hive) {
+			bees = hive.getOccupantCount();
+			sedated = hive.isSedated();
+		}
+		return new Peek(analog, cmp, snap, song, ticks, page, pages, lecternSignal, fuel, fuelTotal, cook, cookTotal, bees, sedated);
+	}
+
+	private static EntityPeek read(Entity e) {
+		if (e == null) {
+			return null;
+		}
+		ContainerSnapshot snap = e instanceof ContainerEntity c ? snapshot(c) : null;
+		int enabled = e instanceof MinecartHopper h ? (h.isEnabled() ? 1 : 0) : -1;
+		int fuel = e instanceof MinecartFurnace f ? ((MinecartFurnaceAccessor) f).gauge$fuel() : -1;
+		return new EntityPeek(snap, enabled, fuel);
 	}
 
 	private static ContainerSnapshot snapshot(Container c) {

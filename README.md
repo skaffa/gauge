@@ -19,8 +19,16 @@ packets of its own.
 - Note blocks show their note (`C4`); the panel adds step, pitch, Hz and the next click.
 - Jukeboxes show the song and its progress, if it started while you were nearby.
 - Lecterns show page and comparator output (`p3/5 | 8`) once you have read the book.
-- In singleplayer every value is exact and live (read from the built-in server): containers without
-  opening them, comparator outputs, jukebox songs and lectern pages.
+- Mechanisms: doors, trapdoors and gates (open/closed, `P` when powered), pistons (`ext`/`ret`;
+  `ret!`/`ext!` when power and arm disagree: BUD, quasi-connectivity, blocked push), powered and
+  activator rails, detector rails with the cart's comparator value, bells (ringing/powered),
+  tripwires (tripped string outlined red), unstable TNT, beehive honey level.
+- Furnaces, smokers and blast furnaces show `lit`; `lit!` means lit with no fuel burning.
+- Entities: chest/hopper minecarts and chest boats (fill, once opened), hopper cart lock, furnace cart
+  fuel, lit TNT and TNT carts with the fuse in seconds.
+- In singleplayer every value is exact and live (read from the built-in server): containers and carts
+  without opening them, comparator outputs, jukebox songs, lectern pages, bees in a hive, furnace and
+  furnace cart fuel, hopper cart lock.
 
 See [SPEC.md](SPEC.md) for details and known limits.
 
@@ -43,7 +51,8 @@ python tools/rcon.py gaugetest --script tools/disc.txt      # a few seconds late
 ```
 
 The client takes screenshots (`run/screenshots/gauge-*.png`), opens the test chest, aims at each
-further target in focus mode, and quits.
+further target in focus mode, and quits. A target written as `r6,-60,8` is a radius-mode overview
+instead. `tools/mechanisms.txt` builds the mechanisms, furnace, beehive and cart rows.
 
 ## License
 

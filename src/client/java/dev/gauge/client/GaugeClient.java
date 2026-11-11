@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -40,6 +41,7 @@ public final class GaugeClient implements ClientModInitializer {
 
 		ClientTickEvents.END_CLIENT_TICK.register(GaugeClient::tick);
 		UseBlockCallback.EVENT.register(ContainerTracker::onUse);
+		UseEntityCallback.EVENT.register(ContainerTracker::onUseEntity);
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
 			Gauge.reset();
 			JukeboxTracker.clear();
