@@ -30,6 +30,11 @@ final class DevShots {
 			return;
 		}
 		ticks++;
+		// a click elsewhere on the desktop must not pause the world mid-run
+		mc.options.pauseOnLostFocus = false;
+		if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.PauseScreen) {
+			mc.gui.setScreen(null);
+		}
 		List<BlockPos> targets = targets();
 		if (targets.isEmpty()) {
 			return;
@@ -66,7 +71,12 @@ final class DevShots {
 			boolean overview = OVERVIEW.contains(extra);
 			// "r" targets: step back and up, radius mode, to see every label around it
 			Gauge.config.mode = overview ? GaugeConfig.Mode.RADIUS : GaugeConfig.Mode.FOCUS;
-			teleport(mc, t.getX() + 0.5, t.getY() + (overview ? 2 : 0), t.getZ() + (overview ? 6.5 : 2.5));
+			// overviews: hover (creative flight) and hide the hand and hotbar, like F1
+			mc.player.getAbilities().flying = overview;
+			if (mc.gui.hud.isHidden() != overview) {
+				mc.gui.hud.toggle();
+			}
+			teleport(mc, t.getX() + 0.5, t.getY() + (overview ? 1.2 : 0), t.getZ() + (overview ? 3.5 : 2.5));
 		}
 		if (extra >= 1 && extra < targets.size() && (ticks - 500) % 30 == 25) {
 			shot(mc, "5-target" + extra);
