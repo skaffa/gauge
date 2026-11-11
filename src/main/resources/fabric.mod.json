@@ -3,7 +3,7 @@
 	"id": "gauge",
 	"version": "${version}",
 	"name": "Gauge",
-	"description": "Client-side redstone and container diagnostics: power levels, output arrows, pulse timing, container fill and comparator output, drawn in the world. Sends no packets.",
+	"description": "Client-side redstone diagnostics drawn in the world: power levels, output arrows, pulse timing, container fill and comparator output, note blocks, jukeboxes, lecterns, pistons (BUD/QC), doors, rails, tripwires, carts and TNT fuses. Sends no packets.",
 	"authors": [
 		"Skaffa",
 		"Claude (Anthropic)"
