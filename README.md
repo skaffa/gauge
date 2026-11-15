@@ -6,7 +6,7 @@ clock highlighting, container fill and comparator output, note block pitch and j
 drawn in the world. No server mod, no
 packets of its own.
 
-![Radius mode](media/radius.png)
+![Radius mode](https://raw.githubusercontent.com/skaffa/gauge/ef8ac1b636fb410f70f5f81b0a5dd247fd3d1548/media/radius.png)
 
 ## Use
 
@@ -30,8 +30,6 @@ packets of its own.
   without opening them, comparator outputs, jukebox songs, lectern pages, bees in a hive, furnace and
   furnace cart fuel, hopper cart lock.
 
-See [SPEC.md](SPEC.md) for details and known limits.
-
 ## Build
 
 Needs JDK 25.
@@ -40,19 +38,6 @@ Needs JDK 25.
 ./gradlew build          # jar in build/libs, runs the JUnit tests
 ./gradlew runClient
 ```
-
-### Scripted in-game check
-
-```
-./gradlew runServer --args=nogui         # run-server/: flat, offline, RCON password gaugetest
-./gradlew runClient "-Pdevshots=3,-60,3;6,-60,3;8,-60,3" --args="--username GaugeTester --quickPlayMultiplayer localhost:25565"
-python tools/rcon.py gaugetest --script tools/testrig.txt   # once the player has joined
-python tools/rcon.py gaugetest --script tools/disc.txt      # a few seconds later: starts a jukebox song
-```
-
-The client takes screenshots (`run/screenshots/gauge-*.png`), opens the test chest, aims at each
-further target in focus mode, and quits. A target written as `r6,-60,8` is a radius-mode overview
-instead. `tools/mechanisms.txt` builds the mechanisms, furnace, beehive and cart rows.
 
 ## License
 
